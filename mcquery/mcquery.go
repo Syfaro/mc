@@ -11,7 +11,7 @@ import (
 )
 
 const MaxRetries = 3
-const Timeout = time.Second * 5
+const Timeout = time.Second * 1
 
 type Connection struct {
 	Conn      net.Conn
