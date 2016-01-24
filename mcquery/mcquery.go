@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const MaxRetries = 3
+const MaxRetries = 1
 const Timeout = time.Second * 1
 
 type Connection struct {
@@ -51,7 +51,7 @@ func putUint32(b []byte, n uint32) {
 }
 
 func Connect(addr string) (c *Connection, err error) {
-	conn, err := net.Dial("udp", addr)
+	conn, err := net.DialTimeout("udp", addr, Timeout)
 	if err != nil {
 		return nil, err
 	}
