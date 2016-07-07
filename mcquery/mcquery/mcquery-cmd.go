@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/kierdavis/mc/mcquery"
+	"github.com/syfaro/mc/mcquery"
 	"os"
 	"strings"
 )

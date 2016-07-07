@@ -10,14 +10,14 @@ import (
 	"time"
 )
 
-const MaxRetries = 1
-const Timeout = time.Second * 1
+const MaxRetries = 2
+const Timeout = time.Second * 2
 
 type Connection struct {
 	Conn      net.Conn
-	ID        uint32
+	ID        int32
 	Retries   int
-	Challenge uint32
+	Challenge int32
 }
 
 type Stat struct {
@@ -35,15 +35,15 @@ type Stat struct {
 	Players    []string
 }
 
-func getUint32(b []byte) (n uint32) {
-	n = uint32(b[0]) << 24
-	n |= uint32(b[1]) << 16
-	n |= uint32(b[2]) << 8
-	n |= uint32(b[3])
+func getInt32(b []byte) (n int32) {
+	n = int32(b[0]) << 24
+	n |= int32(b[1]) << 16
+	n |= int32(b[2]) << 8
+	n |= int32(b[3])
 	return n
 }
 
-func putUint32(b []byte, n uint32) {
+func putInt32(b []byte, n int32) {
 	b[0] = byte(n >> 24)
 	b[1] = byte(n >> 16)
 	b[2] = byte(n >> 8)
@@ -77,7 +77,7 @@ func (c *Connection) WritePacket(t byte, payload []byte) (err error) {
 	message[1] = 0xFD
 	message[2] = t
 
-	putUint32(message[3:7], c.ID)
+	putInt32(message[3:7], c.ID)
 	copy(message[7:], payload)
 
 	_, err = c.Conn.Write(message)
@@ -88,7 +88,7 @@ func (c *Connection) WritePacket(t byte, payload []byte) (err error) {
 	return c.Conn.SetReadDeadline(time.Now().Add(Timeout))
 }
 
-func (c *Connection) ReadPacket() (t byte, id uint32, payload []byte, err error) {
+func (c *Connection) ReadPacket() (t byte, id int32, payload []byte, err error) {
 	buffer := make([]byte, 2048)
 	n, err := c.Conn.Read(buffer)
 	if err != nil {
@@ -98,7 +98,7 @@ func (c *Connection) ReadPacket() (t byte, id uint32, payload []byte, err error)
 	buffer = buffer[:n]
 
 	t = buffer[0]
-	id = getUint32(buffer[1:5])
+	id = getInt32(buffer[1:5])
 	payload = buffer[5:]
 
 	return t, id, payload, nil
@@ -127,20 +127,20 @@ func (c *Connection) Handshake() (err error) {
 		return err
 	}
 
-	challenge, err := strconv.ParseUint(string(payload[:len(payload)-1]), 10, 32)
+	challenge, err := strconv.ParseInt(string(payload[:len(payload)-1]), 10, 32)
 	if err != nil {
 		return err
 	}
 
 	c.Retries = 0
-	c.Challenge = uint32(challenge)
+	c.Challenge = int32(challenge)
 
 	return nil
 }
 
 func (c *Connection) BasicStat() (r *Stat, err error) {
 	packet := make([]byte, 4)
-	putUint32(packet, c.Challenge)
+	putInt32(packet, c.Challenge)
 
 	err = c.WritePacket(0, packet)
 	if err != nil {
@@ -186,7 +186,7 @@ func (c *Connection) BasicStat() (r *Stat, err error) {
 
 func (c *Connection) FullStat() (r *Stat, err error) {
 	packet := make([]byte, 8)
-	putUint32(packet, c.Challenge)
+	putInt32(packet, c.Challenge)
 
 	err = c.WritePacket(0, packet)
 	if err != nil {
