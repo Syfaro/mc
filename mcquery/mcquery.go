@@ -2,6 +2,7 @@ package mcquery
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net"
 	"sort"
@@ -51,6 +52,12 @@ func putInt32(b []byte, n int32) {
 }
 
 func Connect(addr string) (c *Connection, err error) {
+	srvHost, srvPort, err := resolveSRV(addr)
+
+	if err == nil {
+		addr = srvHost + ":" + strconv.Itoa(int(srvPort))
+	}
+
 	conn, err := net.DialTimeout("udp", addr, Timeout)
 	if err != nil {
 		return nil, err
@@ -69,6 +76,22 @@ func Connect(addr string) (c *Connection, err error) {
 	}
 
 	return c, nil
+}
+
+func resolveSRV(addr string) (host string, port uint16, err error) {
+	h, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return "", 0, err
+	}
+
+	_, addrs, err := net.LookupSRV("minecraft", "tcp", h)
+	if err != nil || len(addrs) == 0 {
+		return "", 0, errors.New("unable to find SRV record")
+	}
+
+	addrs[0].Target = strings.TrimSuffix(addrs[0].Target, ".")
+
+	return addrs[0].Target, addrs[0].Port, nil
 }
 
 func (c *Connection) WritePacket(t byte, payload []byte) (err error) {
